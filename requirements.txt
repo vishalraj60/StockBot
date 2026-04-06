@@ -1,0 +1,4 @@
+crewai==0.75.0
+langchain-groq==0.1.5
+flask==3.0.0
+markdown==3.5.1

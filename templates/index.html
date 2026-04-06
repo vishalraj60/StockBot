@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockBot Dashboard</title>
+    
+    <!-- Premium UI Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #f8fafc;
+            --bg-sidebar: #ffffff;
+            --bg-card: #ffffff;
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-glow: rgba(79, 70, 229, 0.15);
+            --accent: #ec4899;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --sidebar-width: 260px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ----- SIDEBAR ----- */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 20px;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
+            padding-left: 8px;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .brand-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: white;
+            stroke-width: 2.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .brand-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text-main);
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background-color: var(--primary-glow);
+            color: var(--primary);
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border-top: 1px solid var(--border-light);
+            margin-top: auto;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* ----- MAIN CONTENT ----- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .topbar {
+            height: 70px;
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-light);
+            background: rgba(248, 250, 252, 0.8);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .page-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .topbar-actions {
+            display: flex;
+            gap: 16px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1px solid var(--border-light);
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .app-workspace {
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        /* SPA View Logic */
+        .view-section {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        
+        .view-section.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .workspace-header {
+            margin-bottom: 30px;
+        }
+
+        .workspace-header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .workspace-header p {
+            color: var(--text-muted);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+            margin-bottom: 24px;
+        }
+
+        /* Upload Area */
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            background: #f8fafc;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: var(--primary);
+            background: var(--primary-glow);
+        }
+
+        .upload-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 20px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .upload-area:hover .upload-icon {
+            transform: scale(1.1);
+        }
+
+        .upload-icon svg {
+            width: 28px;
+            height: 28px;
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .upload-subtext {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+        }
+
+        input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0; left: 0;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .btn-primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 16px;
+            margin-top: 24px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--border-light);
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: var(--primary);
+        }
+
+        /* Loader */
+        .loader-container {
+            display: none;
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid var(--border-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .loader-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .loader-desc {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Results Panel & Grid */
+        #results-panel {
+            display: none;
+        }
+
+        .split-layout {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-areas: 
+                "analysis analysis"
+                "low-stock high-trend"
+                "other other";
+            gap: 24px;
+        }
+
+        .box.analysis-box { grid-area: analysis; }
+        .box.low-stock { grid-area: low-stock; }
+        .box.high-trend { grid-area: high-trend; }
+
+        .split-layout .box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .box h3 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Markdown Styling inside boxes */
+        .markdown-body {
+            line-height: 1.6;
+            color: var(--text-main);
+        }
+
+        .markdown-body h1, .markdown-body h2 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .markdown-body h1 {
+            font-size: 1.8rem;
+            border-bottom: 1px solid var(--border-light);
+            padding-bottom: 12px;
+        }
+        
+        .markdown-body h2 {
+            font-size: 1.4rem;
+            color: var(--text-main);
+            margin-top: 24px;
+        }
+
+        .box p {
+            margin-bottom: 1rem;
+            color: #475569;
+        }
+
+        .box strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        
+        .box ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .box li {
+            position: relative;
+            padding: 12px 16px 12px 40px;
+            margin-bottom: 8px;
+            background: #f8fafc;
+            border-radius: 8px;
+            color: #475569;
+            font-size: 0.95rem;
+        }
+
+        .box li::before {
+            content: "•";
+            position: absolute;
+            left: 16px;
+            color: var(--primary);
+            font-size: 1.5rem;
+            line-height: 1;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .error-message {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.95rem;
+        }
+
+        /* Settings Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1rem;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+        
+        /* History Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th, .data-table td {
+            text-align: left;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .data-table th {
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        /* Mobile Adjustments */
+        .menu-toggle {
+            display: none;
+        }
+
+        @media (max-width: 900px) {
+            .sidebar {
+                position: fixed;
+                left: -100%;
+                height: 100%;
+                transition: 0.3s;
+            }
+            .menu-toggle {
+                display: block;
+                background: none;
+                border: none;
+                margin-right: 16px;
+            }
+            .menu-toggle svg {
+                width: 24px;
+                height: 24px;
+            }
+            .split-layout {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "analysis"
+                    "low-stock"
+                    "high-trend"
+                    "other";
+            }
+            .topbar { padding: 0 20px; }
+            .app-workspace { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+            </div>
+            <div class="brand-text">StockBot</div>
+        </div>
+
+        <ul class="nav-menu">
+            <a class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')">
+                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                Dashboard
+            </a>
+            <!-- Keep Datasets pointing to Dashboard for simplicity -->
+            <a class="nav-item" id="nav-datasets" onclick="switchView('dashboard')">
+                <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                Datasets
+            </a>
+            <a class="nav-item" id="nav-history" onclick="switchView('history')">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Analysis History
+            </a>
+            <a class="nav-item" id="nav-settings" onclick="switchView('settings')" style="margin-top: 15px;">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Settings
+            </a>
+        </ul>
+
+        <div class="user-profile">
+            <div class="avatar">VR</div>
+            <div class="user-info">
+                <span class="user-name">Vishal Raj</span>
+                <span class="user-role">Administrator</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="main-content">
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div style="display:flex; align-items:center;">
+                <button class="menu-toggle">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <div class="page-title" id="global-page-title">Inventory Intelligence</div>
+            </div>
+            <div class="topbar-actions">
+                <button class="icon-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- SPA WORKSPACE -->
+        <div class="app-workspace">
+
+            <!-- =============================== -->
+            <!-- VIEW: DASHBOARD (Default) -->
+            <!-- =============================== -->
+            <div id="view-dashboard" class="view-section active">
+                <div class="workspace-header">
+                    <h1>Analyze Store Data</h1>
+                    <p>Upload your CSV inventory dataset and let AI predict low stock and high-trend items.</p>
+                </div>
+
+                <!-- UPLOAD PANEL -->
+                <div class="card" id="upload-panel">
+                    <form id="upload-form">
+                        <div class="upload-area" id="drop-zone">
+                            <div class="upload-icon">
+                                <svg viewBox="0 0 24 24">
+                                    <polyline points="16 16 12 12 8 16"></polyline>
+                                    <line x1="12" y1="12" x2="12" y2="21"></line>
+                                    <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path>
+                                    <polyline points="16 16 12 12 8 16"></polyline>
+                                </svg>
+                            </div>
+                            <div class="upload-text">Upload Dataset</div>
+                            <div class="upload-subtext" id="file-name-display">Drag & drop your .csv file here or click to browse</div>
+                            <input type="file" id="csv-file" accept=".csv" required>
+                        </div>
+                        <button type="submit" class="btn-primary" id="analyze-btn">
+                            Generate Prediction Report
+                        </button>
+                    </form>
+                    <div id="error-box" class="error-message"></div>
+                </div>
+
+                <!-- LOADER -->
+                <div class="card loader-container" id="loader">
+                    <div class="spinner"></div>
+                    <div class="loader-title">Analyzing Dataset...</div>
+                    <div class="loader-desc">Llama agents are identifying demand loops (~20s)</div>
+                </div>
+
+                <!-- RESULTS PANEL -->
+                <div id="results-panel">
+                    <div class="markdown-body" id="results-content">
+                        <!-- AI payload injected here -->
+                    </div>
+                    <button class="btn-primary btn-secondary" style="margin-top: 30px; max-width: 300px;" onclick="resetApp()">
+                        Analyze Another Dataset
+                    </button>
+                </div>
+            </div>
+
+            <!-- =============================== -->
+            <!-- VIEW: HISTORY -->
+            <!-- =============================== -->
+            <div id="view-history" class="view-section">
+                <div class="workspace-header">
+                    <h1>Analysis History</h1>
+                    <p>View your past dataset predictions and structural breakdown history.</p>
+                </div>
+                
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Dataset Name</th>
+                                <th>Date Analyzed</th>
+                                <th>Status</th>
+                                <th>AI Engine</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong style="color:var(--primary)">DMart_Inventory_Q1.csv</strong></td>
+                                <td>Today, 10:42 AM</td>
+                                <td><span class="badge">Completed</span></td>
+                                <td>Llama 3.3</td>
+                            </tr>
+                            <tr>
+                                <td><strong style="color:var(--primary)">Apparel_Stock_24.csv</strong></td>
+                                <td>Yesterday, 4:15 PM</td>
+                                <td><span class="badge">Completed</span></td>
+                                <td>Llama 3.3</td>
+                            </tr>
+                            <tr>
+                                <td><strong style="color:var(--primary)">Electronics_Sample.csv</strong></td>
+                                <td>Apr 03, 2026</td>
+                                <td><span class="badge">Completed</span></td>
+                                <td>CrewAI Agent</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div style="padding: 20px; text-align: center; border-top: 1px solid var(--border-light)">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">
+                            History is currently mocked for pre-database demonstration.
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =============================== -->
+            <!-- VIEW: SETTINGS -->
+            <!-- =============================== -->
+            <div id="view-settings" class="view-section">
+                <div class="workspace-header">
+                    <h1>Platform Settings</h1>
+                    <p>Configure your workspace dependencies and agent behaviors.</p>
+                </div>
+                
+                <div class="card">
+                    <h3 style="font-family: 'Outfit'; margin-bottom: 24px; font-size: 1.25rem;">API Configuration</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Groq API Key (Llama 3.3 Access)</label>
+                        <input type="password" class="form-input" value="gsk_**************************************" readonly>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
+                            Currently hardcoded in the `universal_csv_agent.py` environment. Enter a new one here to override.
+                        </p>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top: 30px;">
+                        <label class="form-label">Agent Creativity (Temperature)</label>
+                        <input type="number" class="form-input" style="max-width: 100px;" value="0.2" readonly>
+                    </div>
+
+                    <button class="btn-primary" style="max-width: 200px; margin-top: 40px;">Save Settings</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // DOM Elements
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('csv-file');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const form = document.getElementById('upload-form');
+        
+        const uploadPanel = document.getElementById('upload-panel');
+        const loader = document.getElementById('loader');
+        const resultsPanel = document.getElementById('results-panel');
+        const resultsContent = document.getElementById('results-content');
+        const errorBox = document.getElementById('error-box');
+        
+        // SPA Routing
+        function switchView(viewId) {
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(view => {
+                view.classList.remove('active');
+            });
+            // Show requested view
+            document.getElementById('view-' + viewId).classList.add('active');
+            
+            // Update sidebar nav states
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+            
+            // Map the link ID logic safely
+            let navTarget = viewId;
+            if (viewId === 'dashboard') navTarget = 'dashboard';
+            
+            const activeNav = document.getElementById('nav-' + navTarget);
+            if(activeNav) activeNav.classList.add('active');
+            
+            // Change page title dynamically
+            const titles = {
+                'dashboard': 'Inventory Intelligence',
+                'history': 'Analysis History',
+                'settings': 'Platform Settings'
+            };
+            document.getElementById('global-page-title').textContent = titles[viewId];
+        }
+
+        // Elegant Drag & Drop Handlers
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                updateFileName();
+            }
+        });
+
+        fileInput.addEventListener('change', updateFileName);
+
+        function updateFileName() {
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.textContent = `Selected: ${fileInput.files[0].name}`;
+                fileNameDisplay.style.color = 'var(--primary)';
+                fileNameDisplay.style.fontWeight = '500';
+            } else {
+                fileNameDisplay.textContent = 'Drag & drop your .csv file here or click to browse';
+                fileNameDisplay.style.color = 'var(--text-muted)';
+                fileNameDisplay.style.fontWeight = 'normal';
+            }
+        }
+        
+        function parseToBoxes(htmlString) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlString;
+            
+            const headers = Array.from(tempDiv.querySelectorAll('h3'));
+            if (headers.length < 2) return htmlString; 
+            
+            let analysisContent = "";
+            let lowStockContent = "";
+            let highTrendContent = "";
+            
+            let currentNode = tempDiv.firstElementChild;
+            while (currentNode && currentNode.tagName !== 'H3') {
+                if(currentNode.nodeType === 1) analysisContent += currentNode.outerHTML;
+                currentNode = currentNode.nextElementSibling;
+            }
+            
+            for (let i = 0; i < headers.length; i++) {
+                let currentHeader = headers[i];
+                let contentHTML = currentHeader.outerHTML;
+                let headerText = currentHeader.textContent.toLowerCase();
+                
+                let nextNode = currentHeader.nextElementSibling;
+                while (nextNode && nextNode.tagName !== 'H3') {
+                    if(nextNode.nodeType === 1) contentHTML += nextNode.outerHTML;
+                    nextNode = nextNode.nextElementSibling;
+                }
+                
+                if (headerText.includes('low') || headerText.includes('stock')) {
+                    lowStockContent += contentHTML;
+                } else if (headerText.includes('trend') || headerText.includes('high') || headerText.includes('popular')) {
+                    highTrendContent += contentHTML;
+                } else {
+                    analysisContent += contentHTML; 
+                }
+            }
+            
+            let structuredHtml = `<div class="split-layout">`;
+            
+            if (analysisContent.trim() !== "") {
+                structuredHtml += `<div class="box analysis-box">${analysisContent}</div>`;
+            }
+            if (lowStockContent.trim() !== "") {
+                structuredHtml += `<div class="box low-stock">${lowStockContent}</div>`;
+            }
+            if (highTrendContent.trim() !== "") {
+                structuredHtml += `<div class="box high-trend">${highTrendContent}</div>`;
+            }
+            
+            structuredHtml += `</div>`;
+            return structuredHtml;
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (fileInput.files.length === 0) return;
+            
+            const file = fileInput.files[0];
+            if (!file.name.endsWith('.csv')) {
+                showError("Invalid format. Please upload a standard CSV file.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            errorBox.style.display = 'none';
+            uploadPanel.style.display = 'none';
+            loader.style.display = 'block';
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                loader.style.display = 'none';
+
+                if (response.ok && data.success) {
+                    resultsContent.innerHTML = parseToBoxes(data.html);
+                    
+                    if (data.html.includes("expired_api_key") || data.html.includes("Invalid API Key")) {
+                        resultsContent.innerHTML = `
+                            <h2><span style="color:#ef4444">⚠️</span> Authentication Error</h2>
+                            <p style="color:var(--text-muted)">The Groq API key embedded in <code>universal_csv_agent.py</code> is invalid or expired.</p>
+                            <div class="error-message" style="display:block; margin-top:20px;">
+                                <strong>Raw Trace:</strong><br/><br/>${data.html}
+                            </div>
+                        `;
+                    }
+                    
+                    resultsPanel.style.display = 'block';
+                } else {
+                    showError(data.error || "A processing anomaly occurred.");
+                    uploadPanel.style.display = 'block';
+                }
+            } catch (err) {
+                loader.style.display = 'none';
+                uploadPanel.style.display = 'block';
+                showError("Cannot connect to Flask server. Please ensure backend is running.");
+            }
+        });
+
+        function showError(msg) {
+            errorBox.innerHTML = `<strong>Error Detected:</strong><br/>${msg}`;
+            errorBox.style.display = 'block';
+        }
+
+        function resetApp() {
+            resultsPanel.style.display = 'none';
+            uploadPanel.style.display = 'block';
+            fileInput.value = '';
+            updateFileName();
+            errorBox.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
