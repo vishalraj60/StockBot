@@ -1,15 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StockBot Dashboard</title>
-    
+
     <!-- Premium UI Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Chart JS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- HTML2PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <style>
         :root {
             --bg-base: #f8fafc;
@@ -224,20 +232,27 @@
             margin: 0 auto;
             width: 100%;
         }
-        
+
         /* SPA View Logic */
         .view-section {
             display: none;
             animation: fadeIn 0.4s ease;
         }
-        
+
         .view-section.active {
             display: block;
         }
-        
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .workspace-header {
@@ -277,7 +292,8 @@
             background: #f8fafc;
         }
 
-        .upload-area:hover, .upload-area.dragover {
+        .upload-area:hover,
+        .upload-area.dragover {
             border-color: var(--primary);
             background: var(--primary-glow);
         }
@@ -291,7 +307,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
@@ -325,7 +341,8 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            top: 0; left: 0;
+            top: 0;
+            left: 0;
             opacity: 0;
             cursor: pointer;
             z-index: 2;
@@ -384,7 +401,9 @@
         }
 
         @keyframes spin {
-            100% { transform: rotate(360deg); }
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .loader-title {
@@ -407,16 +426,44 @@
         .split-layout {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-template-areas: 
-                "analysis analysis"
-                "low-stock high-trend"
-                "other other";
             gap: 24px;
         }
 
-        .box.analysis-box { grid-area: analysis; }
-        .box.low-stock { grid-area: low-stock; }
-        .box.high-trend { grid-area: high-trend; }
+        .box.analysis-box {
+            grid-column: span 2;
+        }
+
+        .box.low-stock {
+            grid-column: span 1;
+        }
+
+        .box.high-trend {
+            grid-column: span 1;
+        }
+
+        .box.chart-box,
+        .box.chart-box-pie {
+            grid-column: span 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .export-actions {
+            grid-column: span 2;
+            display: flex;
+            gap: 16px;
+            justify-content: flex-end;
+            margin-top: 10px;
+            padding-top: 20px;
+            border-top: 1px dashed var(--border-light);
+        }
+
+        .export-actions button {
+            max-width: 250px;
+            margin-top: 0;
+            padding: 12px 20px;
+            font-size: 0.95rem;
+        }
 
         .split-layout .box {
             background: var(--bg-card);
@@ -444,18 +491,19 @@
             color: var(--text-main);
         }
 
-        .markdown-body h1, .markdown-body h2 {
+        .markdown-body h1,
+        .markdown-body h2 {
             font-family: 'Outfit', sans-serif;
             font-weight: 600;
             margin-bottom: 1rem;
         }
-        
+
         .markdown-body h1 {
             font-size: 1.8rem;
             border-bottom: 1px solid var(--border-light);
             padding-bottom: 12px;
         }
-        
+
         .markdown-body h2 {
             font-size: 1.4rem;
             color: var(--text-main);
@@ -471,13 +519,13 @@
             color: var(--text-main);
             font-weight: 600;
         }
-        
+
         .box ul {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-        
+
         .box li {
             position: relative;
             padding: 12px 16px 12px 40px;
@@ -514,14 +562,14 @@
         .form-group {
             margin-bottom: 20px;
         }
-        
+
         .form-label {
             display: block;
             font-weight: 500;
             margin-bottom: 8px;
             font-size: 0.95rem;
         }
-        
+
         .form-input {
             width: 100%;
             padding: 12px 16px;
@@ -532,25 +580,26 @@
             color: var(--text-main);
             transition: all 0.2s;
         }
-        
+
         .form-input:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px var(--primary-glow);
         }
-        
+
         /* History Table */
         .data-table {
             width: 100%;
             border-collapse: collapse;
         }
-        
-        .data-table th, .data-table td {
+
+        .data-table th,
+        .data-table td {
             text-align: left;
             padding: 16px;
             border-bottom: 1px solid var(--border-light);
         }
-        
+
         .data-table th {
             color: var(--text-muted);
             font-weight: 500;
@@ -558,7 +607,7 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
-        
+
         .badge {
             padding: 4px 10px;
             border-radius: 20px;
@@ -580,64 +629,104 @@
                 height: 100%;
                 transition: 0.3s;
             }
+
             .menu-toggle {
                 display: block;
                 background: none;
                 border: none;
                 margin-right: 16px;
             }
+
             .menu-toggle svg {
                 width: 24px;
                 height: 24px;
             }
+
             .split-layout {
                 grid-template-columns: 1fr;
-                grid-template-areas: 
-                    "analysis"
-                    "low-stock"
-                    "high-trend"
-                    "other";
             }
-            .topbar { padding: 0 20px; }
-            .app-workspace { padding: 20px; }
+
+            .box.analysis-box,
+            .box.low-stock,
+            .box.high-trend,
+            .box.chart-box,
+            .box.chart-box-pie,
+            .export-actions {
+                grid-column: span 1;
+            }
+
+            .export-actions {
+                justify-content: center;
+                flex-direction: column;
+            }
+
+            .export-actions button {
+                max-width: 100%;
+            }
+
+            .topbar {
+                padding: 0 20px;
+            }
+
+            .app-workspace {
+                padding: 20px;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <!-- SIDEBAR -->
     <aside class="sidebar">
         <div class="brand">
             <div class="brand-icon">
-                <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 3v18h18" />
+                    <path d="m19 9-5 5-4-4-3 3" />
+                </svg>
             </div>
             <div class="brand-text">StockBot</div>
         </div>
 
         <ul class="nav-menu">
             <a class="nav-item active" id="nav-dashboard" onclick="switchView('dashboard')">
-                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <svg viewBox="0 0 24 24">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
                 Dashboard
             </a>
             <!-- Keep Datasets pointing to Dashboard for simplicity -->
             <a class="nav-item" id="nav-datasets" onclick="switchView('dashboard')">
-                <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                <svg viewBox="0 0 24 24">
+                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                </svg>
                 Datasets
             </a>
             <a class="nav-item" id="nav-history" onclick="switchView('history')">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                </svg>
                 Analysis History
             </a>
             <a class="nav-item" id="nav-settings" onclick="switchView('settings')" style="margin-top: 15px;">
-                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="3" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
                 Settings
             </a>
         </ul>
 
         <div class="user-profile">
-            <div class="avatar">VR</div>
+            <div class="avatar">{{ username[:2].upper() if username else 'VR' }}</div>
             <div class="user-info">
-                <span class="user-name">Vishal Raj</span>
+                <span class="user-name">{{ username if username else 'Vishal Raj' }}</span>
                 <span class="user-role">Administrator</span>
             </div>
         </div>
@@ -649,13 +738,20 @@
         <header class="topbar">
             <div style="display:flex; align-items:center;">
                 <button class="menu-toggle">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                        <line x1="3" y1="6" x2="21" y2="6" />
+                        <line x1="3" y1="18" x2="21" y2="18" />
+                    </svg>
                 </button>
                 <div class="page-title" id="global-page-title">Inventory Intelligence</div>
             </div>
             <div class="topbar-actions">
                 <button class="icon-btn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
                 </button>
             </div>
         </header>
@@ -685,7 +781,8 @@
                                 </svg>
                             </div>
                             <div class="upload-text">Upload Dataset</div>
-                            <div class="upload-subtext" id="file-name-display">Drag & drop your .csv file here or click to browse</div>
+                            <div class="upload-subtext" id="file-name-display">Drag & drop your .csv file here or click
+                                to browse</div>
                             <input type="file" id="csv-file" accept=".csv" required>
                         </div>
                         <button type="submit" class="btn-primary" id="analyze-btn">
@@ -707,7 +804,8 @@
                     <div class="markdown-body" id="results-content">
                         <!-- AI payload injected here -->
                     </div>
-                    <button class="btn-primary btn-secondary" style="margin-top: 30px; max-width: 300px;" onclick="resetApp()">
+                    <button class="btn-primary btn-secondary" style="margin-top: 30px; max-width: 300px;"
+                        onclick="resetApp()">
                         Analyze Another Dataset
                     </button>
                 </div>
@@ -721,7 +819,7 @@
                     <h1>Analysis History</h1>
                     <p>View your past dataset predictions and structural breakdown history.</p>
                 </div>
-                
+
                 <div class="card" style="padding: 0; overflow: hidden;">
                     <table class="data-table">
                         <thead>
@@ -732,30 +830,13 @@
                                 <th>AI Engine</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong style="color:var(--primary)">DMart_Inventory_Q1.csv</strong></td>
-                                <td>Today, 10:42 AM</td>
-                                <td><span class="badge">Completed</span></td>
-                                <td>Llama 3.3</td>
-                            </tr>
-                            <tr>
-                                <td><strong style="color:var(--primary)">Apparel_Stock_24.csv</strong></td>
-                                <td>Yesterday, 4:15 PM</td>
-                                <td><span class="badge">Completed</span></td>
-                                <td>Llama 3.3</td>
-                            </tr>
-                            <tr>
-                                <td><strong style="color:var(--primary)">Electronics_Sample.csv</strong></td>
-                                <td>Apr 03, 2026</td>
-                                <td><span class="badge">Completed</span></td>
-                                <td>CrewAI Agent</td>
-                            </tr>
+                        <tbody id="history-body">
+                            <!-- Injected by JS -->
                         </tbody>
                     </table>
                     <div style="padding: 20px; text-align: center; border-top: 1px solid var(--border-light)">
-                        <span style="color: var(--text-muted); font-size: 0.9rem;">
-                            History is currently mocked for pre-database demonstration.
+                        <span style="color: var(--text-muted); font-size: 0.9rem;" id="history-loading-msg">
+                            Loading history from database...
                         </span>
                     </div>
                 </div>
@@ -769,24 +850,38 @@
                     <h1>Platform Settings</h1>
                     <p>Configure your workspace dependencies and agent behaviors.</p>
                 </div>
-                
+
                 <div class="card">
-                    <h3 style="font-family: 'Outfit'; margin-bottom: 24px; font-size: 1.25rem;">API Configuration</h3>
+                    <h3 style="font-family: 'Outfit'; margin-bottom: 24px; font-size: 1.25rem;">User Profile</h3>
                     
                     <div class="form-group">
-                        <label class="form-label">Groq API Key (Llama 3.3 Access)</label>
-                        <input type="password" class="form-input" value="gsk_**************************************" readonly>
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
-                            Currently hardcoded in the `universal_csv_agent.py` environment. Enter a new one here to override.
-                        </p>
-                    </div>
-                    
-                    <div class="form-group" style="margin-top: 30px;">
-                        <label class="form-label">Agent Creativity (Temperature)</label>
-                        <input type="number" class="form-input" style="max-width: 100px;" value="0.2" readonly>
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-input" id="settings-username" placeholder="Visual name">
                     </div>
 
-                    <button class="btn-primary" style="max-width: 200px; margin-top: 40px;">Save Settings</button>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label class="form-label">Login Password</label>
+                        <input type="password" class="form-input" id="settings-password" placeholder="Change login password">
+                    </div>
+
+                    <h3 style="font-family: 'Outfit'; margin-top: 40px; margin-bottom: 24px; font-size: 1.25rem; border-top: 1px solid var(--border-light); padding-top: 30px;">API Configuration</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Groq API Key (Llama 3.3 Access)</label>
+                        <input type="password" class="form-input" id="settings-api-key"
+                            placeholder="Enter new API key to override">
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
+                            Settings are saved securely in the local SQLite database.
+                        </p>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 30px;">
+                        <label class="form-label">Agent Creativity (Temperature)</label>
+                        <input type="number" step="0.1" class="form-input" id="settings-temp" style="max-width: 100px;">
+                    </div>
+
+                    <button class="btn-primary" id="save-settings-btn" onclick="saveSettings()"
+                        style="max-width: 200px; margin-top: 40px;">Save Settings</button>
                 </div>
             </div>
 
@@ -799,13 +894,13 @@
         const fileInput = document.getElementById('csv-file');
         const fileNameDisplay = document.getElementById('file-name-display');
         const form = document.getElementById('upload-form');
-        
+
         const uploadPanel = document.getElementById('upload-panel');
         const loader = document.getElementById('loader');
         const resultsPanel = document.getElementById('results-panel');
         const resultsContent = document.getElementById('results-content');
         const errorBox = document.getElementById('error-box');
-        
+
         // SPA Routing
         function switchView(viewId) {
             // Hide all views
@@ -814,19 +909,19 @@
             });
             // Show requested view
             document.getElementById('view-' + viewId).classList.add('active');
-            
+
             // Update sidebar nav states
             document.querySelectorAll('.nav-item').forEach(nav => {
                 nav.classList.remove('active');
             });
-            
+
             // Map the link ID logic safely
             let navTarget = viewId;
             if (viewId === 'dashboard') navTarget = 'dashboard';
-            
+
             const activeNav = document.getElementById('nav-' + navTarget);
-            if(activeNav) activeNav.classList.add('active');
-            
+            if (activeNav) activeNav.classList.add('active');
+
             // Change page title dynamically
             const titles = {
                 'dashboard': 'Inventory Intelligence',
@@ -834,6 +929,82 @@
                 'settings': 'Platform Settings'
             };
             document.getElementById('global-page-title').textContent = titles[viewId];
+
+            if (viewId === 'history') loadHistory();
+            if (viewId === 'settings') loadSettings();
+        }
+
+        async function loadHistory() {
+            const tbody = document.getElementById('history-body');
+            const msg = document.getElementById('history-loading-msg');
+            try {
+                const res = await fetch('/api/history');
+                const data = await res.json();
+                if (data.success) {
+                    tbody.innerHTML = '';
+                    if (data.history.length === 0) {
+                        msg.textContent = 'No past analysis available.';
+                        return;
+                    }
+                    data.history.forEach(row => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong style="color:var(--primary)">${row.filename}</strong></td>
+                            <td>${row.date_analyzed}</td>
+                            <td><span class="badge">${row.status}</span></td>
+                            <td>${row.ai_engine}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                    msg.textContent = `Loaded ${data.history.length} records from database.`;
+                }
+            } catch (e) {
+                console.error(e);
+                msg.textContent = 'Failed to load history.';
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const res = await fetch('/api/settings');
+                const data = await res.json();
+                if (data.success) {
+                    document.getElementById('settings-username').value = data.settings.username || '';
+                    document.getElementById('settings-password').value = data.settings.password || '';
+                    document.getElementById('settings-api-key').value = data.settings.groq_api_key || '';
+                    document.getElementById('settings-temp').value = data.settings.temperature || 0.2;
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveSettings() {
+            const btn = document.getElementById('save-settings-btn');
+            btn.textContent = 'Saving...';
+            const uname = document.getElementById('settings-username').value;
+            const upass = document.getElementById('settings-password').value;
+            const apiKey = document.getElementById('settings-api-key').value;
+            const temp = document.getElementById('settings-temp').value;
+
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: uname, password: upass, groq_api_key: apiKey, temperature: temp })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    btn.textContent = 'Saved!';
+                    // Dynamically update the UI
+                    const newInitials = uname ? uname.substring(0, 2).toUpperCase() : 'VR';
+                    document.querySelector('.avatar').textContent = newInitials;
+                    document.querySelector('.user-name').textContent = uname || 'Vishal Raj';
+                    setTimeout(() => btn.textContent = 'Save Settings', 2000);
+                }
+            } catch (e) {
+                console.error(e);
+                btn.textContent = 'Error!';
+                setTimeout(() => btn.textContent = 'Save Settings', 2000);
+            }
         }
 
         // Elegant Drag & Drop Handlers
@@ -874,46 +1045,144 @@
                 fileNameDisplay.style.fontWeight = 'normal';
             }
         }
-        
+
+        let inventoryChartInstance = null;
+        let priorityPieChartInstance = null;
+        let currentChartData = null; // Stored for export
+
+        function renderChart(chartData) {
+            currentChartData = chartData; // Store payload data for export capability
+
+            if (inventoryChartInstance) {
+                inventoryChartInstance.destroy();
+            }
+            if (priorityPieChartInstance) {
+                priorityPieChartInstance.destroy();
+            }
+            if (!chartData || chartData.length === 0) return;
+
+            // Extract a key for labels, prioritizing 'name', 'product', 'item'
+            const sampleFields = Object.keys(chartData[0]);
+            const labelCol = sampleFields.find(k => k.toLowerCase().includes('name') || k.toLowerCase().includes('product') || k.toLowerCase().includes('item')) || sampleFields[0];
+            const stockCol = sampleFields.find(k => k.toLowerCase().includes('stock') || k.toLowerCase().includes('qty') || k.toLowerCase().includes('inventory'));
+
+            const labels = chartData.map(row => String(row[labelCol] || 'Unknown').substring(0, 15));
+            const reorderPts = chartData.map(row => row.Calculated_Reorder_Point || 0);
+
+            let stockData = [];
+            if (stockCol) {
+                stockData = chartData.map(row => {
+                    let v = String(row[stockCol] || '0').replace(',', '');
+                    return parseFloat(v.replace(/[^0-9.-]+/g, "")) || 0;
+                });
+            } else {
+                stockData = chartData.map(() => 0);
+            }
+
+            const ctx = document.getElementById('inventoryChart').getContext('2d');
+            inventoryChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.slice(0, 10), // Limit to 10 top items
+                    datasets: [
+                        {
+                            label: 'Current Stock',
+                            data: stockData.slice(0, 10),
+                            backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                            borderColor: 'rgb(79, 70, 229)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Reorder Point',
+                            data: reorderPts.slice(0, 10),
+                            type: 'line',
+                            borderColor: '#ec4899',
+                            backgroundColor: '#ec4899',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // PIE CHART LOGIC
+            let priorityCounts = { "CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "UNKNOWN": 0 };
+            chartData.forEach(row => {
+                let p = row.System_Priority || "UNKNOWN";
+                if (priorityCounts[p] !== undefined) priorityCounts[p]++;
+                else priorityCounts["UNKNOWN"]++;
+            });
+
+            if (priorityCounts["UNKNOWN"] === 0) delete priorityCounts["UNKNOWN"];
+
+            const pieCtx = document.getElementById('priorityPieChart').getContext('2d');
+            priorityPieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(priorityCounts),
+                    datasets: [{
+                        data: Object.values(priorityCounts),
+                        backgroundColor: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#94a3b8'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
         function parseToBoxes(htmlString) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = htmlString;
-            
+
             const headers = Array.from(tempDiv.querySelectorAll('h3'));
-            if (headers.length < 2) return htmlString; 
-            
+            if (headers.length < 2) return htmlString;
+
             let analysisContent = "";
             let lowStockContent = "";
             let highTrendContent = "";
-            
+
             let currentNode = tempDiv.firstElementChild;
             while (currentNode && currentNode.tagName !== 'H3') {
-                if(currentNode.nodeType === 1) analysisContent += currentNode.outerHTML;
+                if (currentNode.nodeType === 1) analysisContent += currentNode.outerHTML;
                 currentNode = currentNode.nextElementSibling;
             }
-            
+
             for (let i = 0; i < headers.length; i++) {
                 let currentHeader = headers[i];
                 let contentHTML = currentHeader.outerHTML;
                 let headerText = currentHeader.textContent.toLowerCase();
-                
+
                 let nextNode = currentHeader.nextElementSibling;
                 while (nextNode && nextNode.tagName !== 'H3') {
-                    if(nextNode.nodeType === 1) contentHTML += nextNode.outerHTML;
+                    if (nextNode.nodeType === 1) contentHTML += nextNode.outerHTML;
                     nextNode = nextNode.nextElementSibling;
                 }
-                
+
                 if (headerText.includes('low') || headerText.includes('stock')) {
                     lowStockContent += contentHTML;
                 } else if (headerText.includes('trend') || headerText.includes('high') || headerText.includes('popular')) {
                     highTrendContent += contentHTML;
                 } else {
-                    analysisContent += contentHTML; 
+                    analysisContent += contentHTML;
                 }
             }
-            
+
             let structuredHtml = `<div class="split-layout">`;
-            
+
             if (analysisContent.trim() !== "") {
                 structuredHtml += `<div class="box analysis-box">${analysisContent}</div>`;
             }
@@ -923,16 +1192,41 @@
             if (highTrendContent.trim() !== "") {
                 structuredHtml += `<div class="box high-trend">${highTrendContent}</div>`;
             }
-            
+
+            // Add Chart containers (Bar and Pie)
+            structuredHtml += `
+            <div class="box chart-box">
+                <h3>📊 Inventory Stock vs Reorder Level</h3>
+                <div style="flex:1; position:relative; min-height: 300px;">
+                    <canvas id="inventoryChart"></canvas>
+                </div>
+            </div>
+            <div class="box chart-box-pie">
+                <h3>🎯 Priority Distribution</h3>
+                <div style="flex:1; position:relative; min-height: 300px;">
+                    <canvas id="priorityPieChart"></canvas>
+                </div>
+            </div>
+            <div class="export-actions" data-html2canvas-ignore="true">
+                <button class="btn-primary" onclick="exportPDF()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:8px; fill:none; stroke:currentColor; stroke-width:2;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Export PDF Report
+                </button>
+                <button class="btn-primary btn-secondary" onclick="exportCSV()">
+                    <svg viewBox="0 0 24 24" width="18" height="18" style="margin-right:8px; fill:none; stroke:currentColor; stroke-width:2;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Download Enhanced CSV
+                </button>
+            </div>`;
+
             structuredHtml += `</div>`;
             return structuredHtml;
         }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             if (fileInput.files.length === 0) return;
-            
+
             const file = fileInput.files[0];
             if (!file.name.endsWith('.csv')) {
                 showError("Invalid format. Please upload a standard CSV file.");
@@ -957,7 +1251,8 @@
 
                 if (response.ok && data.success) {
                     resultsContent.innerHTML = parseToBoxes(data.html);
-                    
+                    renderChart(data.chart_data);
+
                     if (data.html.includes("expired_api_key") || data.html.includes("Invalid API Key")) {
                         resultsContent.innerHTML = `
                             <h2><span style="color:#ef4444">⚠️</span> Authentication Error</h2>
@@ -967,7 +1262,7 @@
                             </div>
                         `;
                     }
-                    
+
                     resultsPanel.style.display = 'block';
                 } else {
                     showError(data.error || "A processing anomaly occurred.");
@@ -992,6 +1287,67 @@
             updateFileName();
             errorBox.style.display = 'none';
         }
+
+        // --- PRO ANALYTICS EXPORT SUITE ---
+        function exportPDF() {
+            const element = document.getElementById('results-content');
+            const dt = new Date().toISOString().slice(0, 10);
+
+            const opt = {
+                margin: 10,
+                filename: `StockBot_AI_Report_${dt}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+
+            // Render specific CSS padding for print
+            element.style.background = 'white';
+            element.style.padding = '20px';
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                element.style.background = '';
+                element.style.padding = '';
+            });
+        }
+
+        function exportCSV() {
+            if (!currentChartData || currentChartData.length === 0) {
+                alert("No data available to export.");
+                return;
+            }
+
+            // Build CSV strings
+            const keys = Object.keys(currentChartData[0]);
+            let csvContent = "data:text/csv;charset=utf-8,\n";
+
+            // Append header
+            csvContent += keys.join(",") + "\n";
+
+            // Append rows
+            currentChartData.forEach(function (rowArray) {
+                let row = keys.map(k => {
+                    let cell = rowArray[k] === null || rowArray[k] === undefined ? "" : String(rowArray[k]);
+                    cell = cell.replace(/"/g, '""'); // escape double quotes
+                    if (cell.search(/("|,|\n)/g) >= 0) {
+                        cell = '"' + cell + '"';
+                    }
+                    return cell;
+                });
+                csvContent += row.join(",") + "\n";
+            });
+
+            // Trigger download via anchor
+            const dt = new Date().toISOString().slice(0, 10);
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `StockBot_Enhanced_Data_${dt}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
+
 </html>

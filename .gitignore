@@ -132,15 +132,16 @@ dmypy.json
 .DS_Store
 
 # Temporary files
-/tmp/
+/tmp/ 
 *.tmp
 
 # Flask uploads
 /tmp/csv_uploads/
 
 # API keys and sensitive data
+.env.example
 .env.local
 .env.*.local
 config.py
 secrets.py
-.env
+stockbot.db

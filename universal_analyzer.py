@@ -2,7 +2,44 @@ import os
 import sys
 import csv
 from crewai import Task, Crew
-from universal_csv_agent import predictive_agent
+from universal_csv_agent import predictive_agent, strategist_agent
+
+def calculate_inventory_metrics(data_sample):
+    if not data_sample: return data_sample
+    
+    # Try to find columns
+    keys = data_sample[0].keys()
+    stock_col = next((k for k in keys if any(w in k.lower() for w in ['stock', 'qty', 'quantity', 'inventory'])), None)
+    sales_col = next((k for k in keys if any(w in k.lower() for w in ['sales', 'sold', 'demand', 'velocity'])), None)
+    
+    for row in data_sample:
+        try:
+            # Parse or simulate data
+            stock_val = str(row[stock_col]).replace(',', '') if stock_col and row.get(stock_col) else '0'
+            stock = float(''.join(filter(str.isdigit, stock_val)) or 0)
+            
+            sales_val = str(row[sales_col]).replace(',', '') if sales_col and row.get(sales_col) else '5'
+            sales = float(''.join(filter(str.isdigit, sales_val)) or 5.0)
+            
+            lead_time = 7 # default 7 days lead time
+            
+            safety_stock = sales * 0.20 # 20% safety stock
+            reorder_point = (sales * lead_time) + safety_stock
+            
+            priority = "LOW"
+            if stock <= 0:
+                priority = "CRITICAL"
+            elif stock < reorder_point:
+                priority = "HIGH"
+            elif stock < reorder_point * 1.5:
+                priority = "MEDIUM"
+                
+            row['System_Priority'] = priority
+            row['Reorder_Point_Formula'] = f"({sales} daily x {lead_time} days) + {round(safety_stock,1)} = {round(reorder_point, 1)}"
+        except Exception:
+            row['System_Priority'] = "UNKNOWN"
+            
+    return data_sample
 
 def analyze_csv_file(csv_path: str) -> str:
     print("="*60)
@@ -23,51 +60,62 @@ def analyze_csv_file(csv_path: str) -> str:
 
             for row in reader:
                 total_rows += 1
-                # Hard limit set to 30 to guarantee we stay completely under the 12000 token TPM limit
-                if len(data_sample) < 30:  
-                    # Extract only efficient columns and strictly truncate values to 40 chars max
-                    trimmed_row = {k: (str(row[k])[:40] + '...' if row[k] and len(str(row[k])) > 40 else row[k]) for k in keep_columns}
+                # Hard limit reduced to 10 to guarantee we stay completely under the 12000 token TPM limit
+                if len(data_sample) < 10:  
+                    # Extract only efficient columns and strictly truncate values to 20 chars max
+                    trimmed_row = {k: (str(row[k])[:20] + '...' if row[k] and len(str(row[k])) > 20 else row[k]) for k in keep_columns}
                     data_sample.append(trimmed_row)
     except Exception as e:
         error_msg = f"❌ Failed to load CSV '{csv_path}': {str(e)}"
         print(error_msg)
-        return error_msg
+        return error_msg, []
+        
+    data_sample = calculate_inventory_metrics(data_sample)
     
     task_description = f"""
     The user has provided a CSV file representing shop data. 
     Total Products (Rows): {total_rows}
     Available Columns/Features: {columns}
     
-    Here is a small sample of the data (up to 10 rows):
+    Here is a small sample of the data (up to 10 rows). Note that we have pre-calculated 'System_Priority' and 'Reorder_Point_Formula' for you using our internal mathematical models:
     {data_sample}
 
     YOUR GOAL:
-    1. Carefully look at the columns. Identify which columns might indicate 'Stock/Inventory/Availability' and which might indicate 'Sales/Trend/Popularity/Demand'.
-    2. If explicit 'stock' columns are missing, DO NOT panic. Use logical proxies instead (e.g., highly discounted items, highly rated items, or items with missing data fields could be inferred as trending/high demand).
-    3. Analyze the provided sample data under these assumptions to determine which items are TRULY low in stock, and which are TRULY high trend.
-    4. You MUST be highly selective and accurate. DO NOT just list every single product in both categories! Evaluate each product and ONLY place it in a category if it legitimately qualifies. A product can be in one list, both lists, or NEITHER list.
-       You MUST separate your findings into EXACTLY two lists under these exact h3 headings:
+    1. Read the provided CSV data which now includes our internal Reorder_Point and System_Priority calculations.
+    2. Incorporate the System_Priority (CRITICAL, HIGH, MEDIUM, LOW) into your analysis. 
+    3. Evaluate each product and group them EXACTLY into these exact h3 headings:
        
-       ### 📉 Low Stock Items
-       [List ONLY the items that are genuinely low in stock/availability here. For EACH product in this list, you MUST display BOTH its Product Name and its actual Stock/Quantity value from the data (e.g., 'Product Name - 10 units'). Limit to Name and Stock level only.]
+       ### 🚨 Critical / High Priority (Action Required)
+       [List ONLY items that have a CRITICAL or HIGH System_Priority, or genuinely look like they are out of stock. For EACH product, display the Name, its calculated Priority, and explain briefly WHY based on the formula and trends.]
        
        ### 🚀 High Trend Sellers
-       [List ONLY the highly popular/trending items here. For EACH product in this list, you MUST display BOTH its Product Name and the specific metric indicating its trend from the data (e.g., 'Product Name - 50% discount' or 'Product Name - High Sales'). Limit to Name and Trend metric only.]
+       [List highly popular/trending items here based on sales velocity or implicit demand proxies.]
        
-    5. AFTER the two lists, in a SEPARATE SECTION titled '### 📊 Comprehensive Explanation', for EACH item located in both lists, provide a DEEP, COMPREHENSIVE EXPLANATION detailing the specific metrics (e.g., high discount rates, stellar user ratings, price drops) that signify its status, and explicitly explain the business urgency.
+    4. AFTER the two lists, in a SEPARATE SECTION titled '### 📊 Comprehensive Explanation', explain the formula logic used (Reorder Point = (Daily Sales x Lead Time) + Safety Stock) and how it influenced your categorization.
 
-    Format your output cleanly in Markdown. Focus entirely on exhaustively assigning the items to these two categories and displaying the required Name + Stock/Trend metric in the lists themselves.
+    Format your output cleanly in Markdown. Focus entirely on exhaustively assigning the items to these categories.
     """
 
     prediction_task = Task(
         description=task_description,
         agent=predictive_agent,
-        expected_output="A structured markdown report identifying the top 5 low-stock/high-trend items, along with an explanation of CSV semantics."
+        expected_output="A structured markdown report identifying the top low-stock/high-trend items, along with an explanation of CSV semantics."
+    )
+
+    strategy_task = Task(
+        description="""
+        Review the outcome of the Data Analyst. Identify the 🚨 Critical / High Priority items.
+        For each of these emergency items, append a section titled '### 🚚 Emergency Shipping & Logistics Plan'.
+        In this section, provide a brief cost-benefit analysis of using Standard Shipping (cheaper but slower) vs Express Shipping (costlier but prevents lost sales) based on the item's priority level.
+        Do not repeat the Analyst's lists. Just add your new Logistics section to the bottom of the final report.
+        """,
+        agent=strategist_agent,
+        expected_output="The final markdown report containing the analyst's findings PLUS the new Emergency Shipping & Logistics Plan section."
     )
 
     crew = Crew(
-        agents=[predictive_agent],
-        tasks=[prediction_task],
+        agents=[predictive_agent, strategist_agent],
+        tasks=[prediction_task, strategy_task],
         verbose=False
     )
 
@@ -88,11 +136,11 @@ def analyze_csv_file(csv_path: str) -> str:
             f.write(output_data)
             
         print(f"\n✅ Report successfully saved to '{output_filename}'")
-        return output_data
+        return output_data, data_sample
     except Exception as e:
         error_str = str(e)
         print(f"❌ AI Analysis Error: {error_str}")
-        return f"**AI Analysis Error**: {error_str}"
+        return f"**AI Analysis Error**: {error_str}", []
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
