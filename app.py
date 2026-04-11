@@ -92,6 +92,9 @@ def api_settings():
     else:
         return jsonify({'success': True, 'settings': get_settings()})
 
+
+
 if __name__ == '__main__':
-    print("🌐 Starting Universal CSV Web Server on port 8080...")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"🌐 Starting Universal CSV Web Server on port {port}...")
+    app.run(host='0.0.0.0', port=port)

@@ -2,7 +2,9 @@ import sqlite3
 import os
 from datetime import datetime
 
-DB_FILE = 'stockbot.db'
+# Vercel has a read-only filesystem, except for the /tmp directory
+is_vercel = os.environ.get('VERCEL') == '1'
+DB_FILE = '/tmp/stockbot.db' if is_vercel else 'stockbot.db'
 
 def get_db_connection():
     conn = sqlite3.connect(DB_FILE)
