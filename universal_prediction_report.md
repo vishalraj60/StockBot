@@ -1,32 +1,52 @@
-# Universal Prediction Report for products-100.csv
+# Universal Prediction Report for DMart.csv
 
 ### 🚨 Critical / High Priority (Action Required)
-Based on the provided data, there are no products with a CRITICAL or HIGH System_Priority. However, we can identify products that are out of stock or have a low stock level. Here are a few products that require attention:
-* None of the products have a CRITICAL or HIGH System_Priority, but we can look at the stock levels to identify products that may require attention. 
-* For example, the product 'Tablet' with Index '2' has a stock level of 81, which is relatively low compared to other products. Its System_Priority is LOW, but its low stock level may require attention.
-* Another product is 'Eco Radio' with Index '9', which has a stock level of 499 and a System_Priority of LOW. Although its stock level is not extremely low, it is still relatively low compared to other products.
+The following items have CRITICAL or HIGH System_Priority and require immediate attention:
+* Nutraj California Al... | HIGH | 0 | 0 | Reorder NOW
+* Chana Dal | HIGH | 0 | 0 | Reorder NOW
 
 ### 🚀 High Trend Sellers
-To identify high trend sellers, we need to analyze the sales velocity or implicit demand proxies. However, the provided data does not contain sales velocity or demand proxy information. Therefore, we can only rely on the stock levels and System_Priority to make an educated guess. 
-* Products like 'Compact Printer Air ...' with Index '1' and a stock level of 774 may be popular due to their high stock levels, but this is not a definitive indicator of trendiness.
-* Another product is 'Smart Blender Cooker' with Index '3', which has a stock level of 726 and a System_Priority of LOW. Its high stock level may indicate popularity, but again, this is not a definitive indicator.
+The top 5 items sorted by Trend_Rank are:
+1. **Trend_Rank**: 1 | **Product Name**: Premia Badam (Almond... | **Trend_Score**: 7.0 | **Daily Sales**: 5.0 | **Rating**: N/A | Brief reason why it is trending: High sales velocity
+2. **Trend_Rank**: 2 | **Product Name**: Premia Badam (Almond... | **Trend_Score**: 7.0 | **Daily Sales**: 5.0 | **Rating**: N/A | Brief reason why it is trending: High sales velocity
+3. **Trend_Rank**: 3 | **Product Name**: Premia Badam (Almond... | **Trend_Score**: 7.0 | **Daily Sales**: 5.0 | **Rating**: N/A | Brief reason why it is trending: High sales velocity
+4. **Trend_Rank**: 4 | **Product Name**: Nutraj California Al... | **Trend_Score**: 7.0 | **Daily Sales**: 5.0 | **Rating**: N/A | Brief reason why it is trending: High sales velocity
+5. **Trend_Rank**: 5 | **Product Name**: Nutraj California Al... | **Trend_Score**: 7.0 | **Daily Sales**: 5.0 | **Rating**: N/A | Brief reason why it is trending: High sales velocity
+
+### 🛒 Restock Recommendation Engine
+The following suppliers have items that need restocking:
+#### 🔴 TIER 1 — Suppliers with CRITICAL items (contact immediately)
+None
+#### 🟠 TIER 2 — Suppliers with HIGH items (contact within 24 hours)
+* **Supplier Name**: Nutraj | **Items to Reorder**: Nutraj California Al... | **Total Units to Order**: 105 | **Recommended Action**: Contact supplier within 24 hours to reorder 105 units
+* **Supplier Name**:  | **Items to Reorder**: Chana Dal | **Total Units to Order**: 105 | **Recommended Action**: Contact supplier within 24 hours to reorder 105 units
 
 ### 📊 Comprehensive Explanation
-The Reorder_Point_Formula used is (5.0 daily x 7 days) + 1.0 = 36.0. This formula calculates the reorder point based on the daily sales, lead time, and safety stock. 
-* The daily sales are assumed to be 5.0 units per day.
-* The lead time is assumed to be 7 days.
-* The safety stock is assumed to be 1.0 unit.
-* The reorder point is calculated by multiplying the daily sales by the lead time and adding the safety stock.
-* This formula is used to determine when to reorder a product to avoid stockouts.
-* However, the provided data does not contain the actual sales velocity or demand proxy information, which is necessary to accurately identify high trend sellers.
-* The System_Priority is used to categorize products into different priority levels (CRITICAL, HIGH, MEDIUM, LOW). However, in the provided data, all products have a System_Priority of LOW.
-* To improve the analysis, more data such as sales velocity, demand proxy information, and actual System_Priority levels (CRITICAL, HIGH, MEDIUM) would be necessary.
-* The current analysis is limited by the lack of sales velocity and demand proxy information, as well as the uniform System_Priority of LOW across all products.
+The reorder point formula is:
+Reorder Point = (Daily Sales × Lead Time) + Safety Stock
+The reorder quantity formula is:
+Reorder Quantity = (Reorder Point + 14-day cover) - Current Stock
+The days until stockout formula is:
+Days Until Stockout = Current Stock / Daily Sales
+These formulas drove the categorization of items into CRITICAL, HIGH, MEDIUM, and LOW priority based on their reorder points, quantities, and days until stockout. The trend score and rank were used to identify high-trend sellers. The supplier priority ranking was based on the severity of their items, with CRITICAL items taking top priority, followed by HIGH, MEDIUM, and LOW items.
 
 ### 🚚 Emergency Shipping & Logistics Plan
-Given the low stock levels of certain products, such as 'Tablet' and 'Eco Radio', an emergency shipping plan may be necessary to prevent stockouts and lost sales. 
-* For 'Tablet' with a stock level of 81, using Express Shipping may be the best option to quickly replenish stock and meet demand. Although Express Shipping is costlier, the potential lost sales and revenue outweigh the additional shipping costs.
-* For 'Eco Radio' with a stock level of 499, Standard Shipping may be a more cost-effective option, as the stock level is not critically low. However, if demand is high, Express Shipping may still be necessary to prevent stockouts.
-* A cost-benefit analysis of using Standard Shipping vs Express Shipping for these products is necessary to determine the most effective and efficient shipping strategy. 
-* The cost of Express Shipping for 'Tablet' may be $100, while the cost of Standard Shipping may be $50. However, the potential lost sales and revenue due to stockouts may be $500, making Express Shipping the more cost-effective option in this case.
-* For 'Eco Radio', the cost of Express Shipping may be $150, while the cost of Standard Shipping may be $75. If the demand is not extremely high, Standard Shipping may be the more cost-effective option, as the stock level is not critically low. However, if demand increases, Express Shipping may be necessary to prevent stockouts and lost sales.
+Based on the provided data, the following emergency shipping and logistics plan is recommended:
+
+* **TIER 1 Suppliers (CRITICAL items)**: Since there are no CRITICAL items with assigned suppliers, this section is empty.
+* **TIER 2 Suppliers (HIGH items)**: 
+    + **Supplier Name**: Nutraj
+        - **Item to Reorder**: Nutraj California Al...
+        - **Reorder_Qty**: 105
+        - **When_To_Reorder**: Immediately
+        - **Days_Until_Stockout**: 0
+        - **Recommended Shipping**: Express Shipping (justified due to the high risk of lost revenue)
+        - **Action Script**: "Hello, this is [Your Name] from [Your Company]. We need to place an urgent order for 105 units of Nutraj California Al... to prevent stockout. Please confirm the order and provide an estimated delivery time."
+    + **Supplier Name**: [Unknown]
+        - **Item to Reorder**: Chana Dal
+        - **Reorder_Qty**: 105
+        - **When_To_Reorder**: Immediately
+        - **Days_Until_Stockout**: 0
+        - **Recommended Shipping**: Express Shipping (justified due to the high risk of lost revenue)
+        - **Action Script**: "Hello, this is [Your Name] from [Your Company]. We need to place an urgent order for 105 units of Chana Dal to prevent stockout. Please confirm the order and provide an estimated delivery time."
+* **TIER 3 Suppliers (MEDIUM items)**: This section is empty since there are no MEDIUM items mentioned in the provided data.

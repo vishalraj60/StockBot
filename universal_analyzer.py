@@ -8,37 +8,101 @@ def calculate_inventory_metrics(data_sample):
     if not data_sample: return data_sample
     
     # Try to find columns
-    keys = data_sample[0].keys()
-    stock_col = next((k for k in keys if any(w in k.lower() for w in ['stock', 'qty', 'quantity', 'inventory'])), None)
-    sales_col = next((k for k in keys if any(w in k.lower() for w in ['sales', 'sold', 'demand', 'velocity'])), None)
-    
+    keys = list(data_sample[0].keys())
+    stock_col    = next((k for k in keys if any(w in k.lower() for w in ['stock', 'qty', 'quantity', 'inventory', 'remaining'])), None)
+
+    # Detect weekly vs daily sales columns separately
+    weekly_col   = next((k for k in keys if 'week' in k.lower() and any(w in k.lower() for w in ['sales', 'sold', 'demand', 'velocity'])), None)
+    sales_col    = next((k for k in keys if any(w in k.lower() for w in ['sales', 'sold', 'demand', 'velocity'])), None)
+    rating_col   = next((k for k in keys if any(w in k.lower() for w in ['rating', 'score', 'stars', 'review'])), None)
+    supplier_col = next((k for k in keys if any(w in k.lower() for w in ['supplier', 'vendor', 'brand', 'manufacturer', 'source'])), None)
+
+    LEAD_TIME_DAYS = 7   # default lead time in days
+    REORDER_COVER  = 14  # how many extra days of stock to order
+    IS_WEEKLY      = weekly_col is not None  # flag for weekly normalization
+    active_sales_col = weekly_col if IS_WEEKLY else sales_col
+
     for row in data_sample:
         try:
-            # Parse or simulate data
+            # --- Parse stock & daily sales ---
             stock_val = str(row[stock_col]).replace(',', '') if stock_col and row.get(stock_col) else '0'
-            stock = float(''.join(filter(str.isdigit, stock_val)) or 0)
-            
-            sales_val = str(row[sales_col]).replace(',', '') if sales_col and row.get(sales_col) else '5'
-            sales = float(''.join(filter(str.isdigit, sales_val)) or 5.0)
-            
-            lead_time = 7 # default 7 days lead time
-            
-            safety_stock = sales * 0.20 # 20% safety stock
-            reorder_point = (sales * lead_time) + safety_stock
-            
-            priority = "LOW"
+            stock = float(''.join(c for c in stock_val if c.isdigit() or c == '.') or 0)
+
+            raw_sales_val = str(row[active_sales_col]).replace(',', '') if active_sales_col and row.get(active_sales_col) else '5'
+            raw_sales = float(''.join(c for c in raw_sales_val if c.isdigit() or c == '.') or 5.0)
+            # Normalize weekly → daily
+            sales = raw_sales / 7.0 if IS_WEEKLY else raw_sales
+            if sales == 0:
+                sales = 1.0  # avoid division-by-zero
+
+            # --- Rating ---
+            rating = 0.0
+            if rating_col and row.get(rating_col):
+                try:
+                    rating = float(str(row[rating_col]).replace(',', '').strip())
+                except ValueError:
+                    rating = 0.0
+
+            # --- Core Restock Formulas ---
+            safety_stock    = sales * 0.20                          # 20% buffer
+            reorder_point   = (sales * LEAD_TIME_DAYS) + safety_stock
+            target_stock    = reorder_point + (sales * REORDER_COVER)
+            reorder_qty     = max(0, round(target_stock - stock))
+            days_until_out  = round(stock / sales) if stock > 0 else 0
+
+            # When to reorder: how many days before we hit the reorder point
+            days_to_reorder = round((stock - reorder_point) / sales) if stock > reorder_point else 0
+            when_label      = "Reorder NOW" if days_to_reorder <= 0 else f"Reorder in {days_to_reorder} day(s)"
+
+            # --- Priority ---
             if stock <= 0:
                 priority = "CRITICAL"
             elif stock < reorder_point:
                 priority = "HIGH"
             elif stock < reorder_point * 1.5:
                 priority = "MEDIUM"
-                
-            row['System_Priority'] = priority
-            row['Reorder_Point_Formula'] = f"({sales} daily x {lead_time} days) + {round(safety_stock,1)} = {round(reorder_point, 1)}"
+            else:
+                priority = "LOW"
+
+            # --- Supplier ---
+            supplier = str(row.get(supplier_col, 'Unknown')).strip() if supplier_col else 'Unknown'
+
+            row['System_Priority']      = priority
+            row['Supplier']             = supplier
+            row['Reorder_Point']        = round(reorder_point, 1)
+            row['Reorder_Qty']          = reorder_qty
+            row['Days_Until_Stockout']  = days_until_out
+            row['Daily_Sales_Used']     = round(sales, 2)  # always show normalised daily figure
+            row['When_To_Reorder']      = when_label
+            row['Reorder_Point_Formula'] = (
+                f"({'Weekly' if IS_WEEKLY else 'Daily'} {round(raw_sales,1)} "
+                f"÷ {'7 = ' + str(round(sales,2)) + ' daily' if IS_WEEKLY else 'daily'}) "
+                f"× {LEAD_TIME_DAYS}d + {round(safety_stock,1)} safety "
+                f"= {round(reorder_point,1)} | Order {reorder_qty} units ({when_label})"
+            )
+            # --- Trend Score (sales velocity + rating weighted blend) ---
+            # Normalise sales to 0-100 scale using a soft cap of 50 daily units
+            sales_score  = min(sales / 50.0, 1.0) * 70   # 70% weight
+            rating_score = (rating / 5.0) * 30 if rating > 0 else 0  # 30% weight
+            row['Trend_Score'] = round(sales_score + rating_score, 1)
+            row['Rating_Used']  = rating if rating > 0 else 'N/A'
         except Exception:
-            row['System_Priority'] = "UNKNOWN"
+            row['System_Priority']     = "UNKNOWN"
+            row['Reorder_Qty']         = 'N/A'
+            row['When_To_Reorder']     = 'N/A'
+            row['Days_Until_Stockout'] = 'N/A'
+            row['Supplier']            = 'Unknown'
+            row['Trend_Score']         = 0
             
+    # --- Rank all rows by Trend_Score descending ---
+    try:
+        scored = [r for r in data_sample if isinstance(r.get('Trend_Score'), (int, float))]
+        scored.sort(key=lambda r: r['Trend_Score'], reverse=True)
+        for i, r in enumerate(scored, start=1):
+            r['Trend_Rank'] = i  # 1 = hottest trend
+    except Exception:
+        pass
+
     return data_sample
 
 def analyze_csv_file(csv_path: str) -> str:
@@ -73,27 +137,53 @@ def analyze_csv_file(csv_path: str) -> str:
     data_sample = calculate_inventory_metrics(data_sample)
     
     task_description = f"""
-    The user has provided a CSV file representing shop data. 
+    The user has provided a CSV file representing shop data.
     Total Products (Rows): {total_rows}
     Available Columns/Features: {columns}
-    
-    Here is a small sample of the data (up to 10 rows). Note that we have pre-calculated 'System_Priority' and 'Reorder_Point_Formula' for you using our internal mathematical models:
+
+    Here is a small sample of the data (up to 10 rows). Pre-calculated fields included:
+    - System_Priority       : CRITICAL / HIGH / MEDIUM / LOW
+    - Supplier              : detected from the CSV automatically
+    - Reorder_Qty           : how many units to order right now
+    - When_To_Reorder       : "Reorder NOW" or "Reorder in N day(s)"
+    - Days_Until_Stockout   : days of stock remaining
+    - Trend_Score           : 0–100 score (70% sales velocity + 30% rating); HIGHER = hotter trend
+    - Trend_Rank            : 1 = hottest trend seller in the dataset
+    - Reorder_Point_Formula : full formula trace
+
+    Data Sample:
     {data_sample}
 
-    YOUR GOAL:
-    1. Read the provided CSV data which now includes our internal Reorder_Point and System_Priority calculations.
-    2. Incorporate the System_Priority (CRITICAL, HIGH, MEDIUM, LOW) into your analysis. 
-    3. Evaluate each product and group them EXACTLY into these exact h3 headings:
-       
-       ### 🚨 Critical / High Priority (Action Required)
-       [List ONLY items that have a CRITICAL or HIGH System_Priority, or genuinely look like they are out of stock. For EACH product, display the Name, its calculated Priority, and explain briefly WHY based on the formula and trends.]
-       
-       ### 🚀 High Trend Sellers
-       [List highly popular/trending items here based on sales velocity or implicit demand proxies.]
-       
-    4. AFTER the two lists, in a SEPARATE SECTION titled '### 📊 Comprehensive Explanation', explain the formula logic used (Reorder Point = (Daily Sales x Lead Time) + Safety Stock) and how it influenced your categorization.
+    YOUR GOAL — produce a Markdown report with EXACTLY these sections in order:
 
-    Format your output cleanly in Markdown. Focus entirely on exhaustively assigning the items to these categories.
+    ### 🚨 Critical / High Priority (Action Required)
+    List ONLY items with CRITICAL or HIGH System_Priority.
+    For EACH item show: Product Name | Priority | Current Stock | Days Until Stockout | Reorder Now.
+
+    ### 🚀 High Trend Sellers
+    Use the pre-calculated `Trend_Score` and `Trend_Rank` fields ONLY. Do NOT guess.
+    List the top 5 items sorted by Trend_Rank (lowest number = hottest).
+    For EACH item show: Trend_Rank | Product Name | Trend_Score | Daily Sales | Rating (if available) | Brief reason why it is trending.
+
+    ### 🛒 Restock Recommendation Engine
+    This is the most important section. For EVERY item that needs restocking (CRITICAL or HIGH priority):
+    - **How much to reorder**: Use the pre-calculated `Reorder_Qty` field exactly.
+    - **When to reorder**: Use the pre-calculated `When_To_Reorder` field exactly.
+    - **Supplier Priority Ranking**: Group items by their `Supplier` column value.
+      Rank suppliers from highest urgency to lowest based on the severity of their items:
+        1. 🔴 TIER 1 — Suppliers with CRITICAL items (contact immediately)
+        2. 🟠 TIER 2 — Suppliers with HIGH items (contact within 24 hours)
+        3. 🟡 TIER 3 — Suppliers with MEDIUM items (schedule reorder this week)
+      For each supplier tier, list: Supplier Name | Items to Reorder | Total Units to Order | Recommended Action.
+
+    ### 📊 Comprehensive Explanation
+    Explain the formula logic:
+    - Reorder Point = (Daily Sales × Lead Time) + Safety Stock
+    - Reorder Quantity = (Reorder Point + 14-day cover) - Current Stock
+    - Days Until Stockout = Current Stock / Daily Sales
+    Explain how these drove your categorization.
+
+    Format your output cleanly in Markdown. Be precise with numbers — use the pre-calculated values from the data.
     """
 
     prediction_task = Task(
@@ -104,13 +194,28 @@ def analyze_csv_file(csv_path: str) -> str:
 
     strategy_task = Task(
         description="""
-        Review the outcome of the Data Analyst. Identify the 🚨 Critical / High Priority items.
-        For each of these emergency items, append a section titled '### 🚚 Emergency Shipping & Logistics Plan'.
-        In this section, provide a brief cost-benefit analysis of using Standard Shipping (cheaper but slower) vs Express Shipping (costlier but prevents lost sales) based on the item's priority level.
-        Do not repeat the Analyst's lists. Just add your new Logistics section to the bottom of the final report.
+        Review the outcome of the Data Analyst, specifically the 🚨 Critical / High Priority items
+        and the 🛒 Restock Recommendation Engine section.
+
+        Your job is to append ONE new section at the bottom of the report:
+
+        ### 🚚 Emergency Shipping & Logistics Plan
+
+        For each CRITICAL and HIGH priority item identified by the Analyst:
+        1. Confirm the exact `Reorder_Qty` and `When_To_Reorder` values from the data.
+        2. Based on `Days_Until_Stockout`:
+           - 0–3 days → Recommend Express Shipping (justify the cost to prevent lost revenue).
+           - 4–7 days → Recommend Priority Shipping.
+           - 8+ days  → Standard Shipping is acceptable.
+        3. Group your recommendations by Supplier Tier:
+           - 🔴 TIER 1 Suppliers (CRITICAL items): Provide an immediate action script/message to send.
+           - 🟠 TIER 2 Suppliers (HIGH items): Schedule a call within 24 hours.
+           - 🟡 TIER 3 Suppliers (MEDIUM items): Add to this week's procurement plan.
+
+        Do NOT repeat the Analyst's priority lists. Only add this new Logistics section.
         """,
         agent=strategist_agent,
-        expected_output="The final markdown report containing the analyst's findings PLUS the new Emergency Shipping & Logistics Plan section."
+        expected_output="The final markdown report with the analyst's findings PLUS the 🚚 Emergency Shipping & Logistics Plan section grouped by Supplier Tier."
     )
 
     crew = Crew(
