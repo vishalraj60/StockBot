@@ -247,6 +247,59 @@ def analyze_csv_file(csv_path: str) -> str:
         print(f"❌ AI Analysis Error: {error_str}")
         return f"**AI Analysis Error**: {error_str}", []
 
+def ask_advisor(message: str, context_data: list) -> str:
+    from langchain_groq import ChatGroq
+    from langchain.agents import AgentExecutor, create_tool_calling_agent
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_community.tools import DuckDuckGoSearchResults
+    import json
+    
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        return "⚠️ Error: Groq API Key not found. Please set it in Settings."
+        
+    try:
+        # Initialize the ChatGroq model
+        chat = ChatGroq(temperature=0.2, groq_api_key=api_key, model_name="llama-3.3-70b-versatile")
+        
+        # Initialize the search tool
+        search = DuckDuckGoSearchResults()
+        tools = [search]
+        
+        # Prepare context data (limit to top 50 items to save tokens)
+        safe_context = context_data[:50] if context_data else []
+        context_str = json.dumps(safe_context, indent=2)
+        
+        system_prompt = f"""
+        You are an expert AI Business Advisor for a shopkeeper. 
+        You have access to their Current Inventory Data Context.
+        You also have access to a web search tool.
+        
+        INSTRUCTIONS:
+        1. If the user asks about their own stock, reordering, or priorities, answer based on the Current Inventory Data.
+        2. If the user asks about "current trends", "market trends", or general advice requiring live data, you MUST use the search tool to find up-to-date information on the internet.
+        3. ALWAYS format your final response in Markdown (using bullet points, bold text, etc., as appropriate).
+        
+        Current Inventory Data Context:
+        {context_str}
+        """
+        
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("human", "{input}"),
+            ("placeholder", "{agent_scratchpad}"),
+        ])
+        
+        agent = create_tool_calling_agent(chat, tools, prompt)
+        agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
+        
+        response = agent_executor.invoke({"input": message})
+        return response["output"]
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return f"⚠️ **Advisor Error**: {str(e)}"
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python universal_analyzer.py <path_to_csv_file>")

@@ -672,6 +672,131 @@
                 padding: 20px;
             }
         }
+
+        /* Chat UI Styles */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #f8fafc;
+        }
+
+        .chat-message {
+            max-width: 80%;
+            padding: 14px 18px;
+            border-radius: 12px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-message.advisor {
+            align-self: flex-start;
+            background: white;
+            color: var(--text-main);
+            border: 1px solid var(--border-light);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .chat-message.advisor .markdown-body {
+            font-size: 0.95rem;
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            font-family: inherit;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+
+        .chat-input:focus {
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .chat-send-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chat-send-btn:hover {
+            background: var(--primary-hover);
+            transform: scale(1.05);
+        }
+
+        .typing-indicator {
+            align-self: flex-start;
+            background: white;
+            padding: 12px 18px;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            border-bottom-left-radius: 4px;
+            display: none;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
     </style>
 </head>
 
@@ -712,6 +837,12 @@
                     <polyline points="12 6 12 12 16 14" />
                 </svg>
                 Analysis History
+            </a>
+            <a class="nav-item" id="nav-advisor" onclick="switchView('advisor')">
+                <svg viewBox="0 0 24 24">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Business Advisor
             </a>
             <a class="nav-item" id="nav-settings" onclick="switchView('settings')" style="margin-top: 15px;">
                 <svg viewBox="0 0 24 24">
@@ -843,6 +974,42 @@
             </div>
 
             <!-- =============================== -->
+            <!-- VIEW: ADVISOR -->
+            <!-- =============================== -->
+            <div id="view-advisor" class="view-section">
+                <div class="workspace-header">
+                    <h1>AI Business Advisor</h1>
+                    <p>Ask questions about your inventory, profitability, and trending products based on the currently analyzed dataset.</p>
+                </div>
+                
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-message advisor">
+                            <div class="markdown-body">
+                                <strong>Hello!</strong> I am your AI Business Advisor. I'm ready to answer any questions about your latest inventory data. 
+                                <br><br>
+                                Try asking: <em>"What products should I restock?"</em> or <em>"What is trending this week?"</em>
+                            </div>
+                        </div>
+                        <div class="typing-indicator" id="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" class="chat-input" placeholder="Type your question here..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                        <button class="chat-send-btn" onclick="sendChatMessage()">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =============================== -->
             <!-- VIEW: SETTINGS -->
             <!-- =============================== -->
             <div id="view-settings" class="view-section">
@@ -926,7 +1093,8 @@
             const titles = {
                 'dashboard': 'Inventory Intelligence',
                 'history': 'Analysis History',
-                'settings': 'Platform Settings'
+                'settings': 'Platform Settings',
+                'advisor': 'AI Business Advisor'
             };
             document.getElementById('global-page-title').textContent = titles[viewId];
 
@@ -1346,6 +1514,65 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        async function sendChatMessage() {
+            const inputField = document.getElementById('chat-input');
+            const message = inputField.value.trim();
+            if (!message) return;
+            
+            const chatMessages = document.getElementById('chat-messages');
+            const typingIndicator = document.getElementById('typing-indicator');
+            
+            // Append user message
+            const userMsgDiv = document.createElement('div');
+            userMsgDiv.className = 'chat-message user';
+            userMsgDiv.textContent = message;
+            chatMessages.insertBefore(userMsgDiv, typingIndicator);
+            
+            inputField.value = '';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            if (!currentChartData || currentChartData.length === 0) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'chat-message advisor';
+                errorDiv.innerHTML = '<div class="markdown-body"><strong>⚠️ Note:</strong> Please upload and analyze a dataset in the Dashboard first so I have data to answer your questions!</div>';
+                chatMessages.insertBefore(errorDiv, typingIndicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return;
+            }
+            
+            // Show typing
+            typingIndicator.style.display = 'flex';
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: message, context: currentChartData })
+                });
+                const data = await response.json();
+                
+                typingIndicator.style.display = 'none';
+                
+                const advMsgDiv = document.createElement('div');
+                advMsgDiv.className = 'chat-message advisor';
+                if (data.success) {
+                    advMsgDiv.innerHTML = '<div class="markdown-body">' + data.response + '</div>';
+                } else {
+                    advMsgDiv.innerHTML = '<div class="markdown-body"><strong>Error:</strong> ' + (data.error || 'Failed to get a response') + '</div>';
+                }
+                chatMessages.insertBefore(advMsgDiv, typingIndicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            } catch(e) {
+                typingIndicator.style.display = 'none';
+                const advMsgDiv = document.createElement('div');
+                advMsgDiv.className = 'chat-message advisor';
+                advMsgDiv.innerHTML = '<div class="markdown-body"><strong>Error:</strong> Failed to connect to the advisor.</div>';
+                chatMessages.insertBefore(advMsgDiv, typingIndicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
         }
     </script>
 </body>

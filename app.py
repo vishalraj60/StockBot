@@ -1,7 +1,7 @@
 import os
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 import markdown
-from universal_analyzer import analyze_csv_file
+from universal_analyzer import analyze_csv_file, ask_advisor
 from database import init_db, save_analysis, get_all_history, get_settings, update_settings
 
 app = Flask(__name__)
@@ -92,9 +92,31 @@ def api_settings():
     else:
         return jsonify({'success': True, 'settings': get_settings()})
 
-
+@app.route('/api/chat', methods=['POST'])
+def chat():
+    if not session.get('logged_in'):
+        return jsonify({'error': 'Unauthorized'}), 401
+        
+    data = request.json
+    message = data.get('message', '')
+    context_data = data.get('context', [])
+    
+    if not message:
+        return jsonify({'error': 'Message is required'}), 400
+        
+    try:
+        response = ask_advisor(message, context_data)
+        
+        # Format response to HTML using markdown parser
+        html_output = markdown.markdown(
+            response, 
+            extensions=['extra', 'nl2br', 'sane_lists']
+        )
+        return jsonify({'success': True, 'response': html_output})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5001))
     print(f"🌐 Starting Universal CSV Web Server on port {port}...")
     app.run(host='0.0.0.0', port=port)
